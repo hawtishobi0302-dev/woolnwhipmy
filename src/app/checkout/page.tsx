@@ -6,16 +6,49 @@ import Footer from "@/components/common/Footer";
 import styles from "./Checkout.module.css";
 import { useCart } from "@/context/CartContext";
 import { useRouter } from 'next/navigation';
+import { supabase } from '@/lib/supabase';
 
 export default function Checkout() {
   const { cart, cartTotal, clearCart } = useCart();
   const router = useRouter();
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handlePlaceOrder = (e: React.FormEvent) => {
+  const [formData, setFormData] = useState({
+    firstName: '',
+    lastName: '',
+    email: '',
+    address: '',
+    city: '',
+    postalCode: ''
+  });
+
+  const handlePlaceOrder = async (e: React.FormEvent) => {
     e.preventDefault();
-    alert("Order placed successfully! Please ensure you have sent the JazzCash payment.");
-    clearCart();
-    router.push('/');
+    setIsSubmitting(true);
+
+    const orderData = {
+      customer_name: `${formData.firstName} ${formData.lastName}`,
+      customer_email: formData.email,
+      address: formData.address,
+      city: formData.city,
+      postal_code: formData.postalCode,
+      items: cart,
+      total_amount: cartTotal,
+      status: 'Pending'
+    };
+
+    const { error } = await supabase
+      .from('orders')
+      .insert([orderData]);
+
+    if (error) {
+      alert("Error placing order: " + error.message);
+    } else {
+      alert("Order placed successfully! Please send your JazzCash payment.");
+      clearCart();
+      router.push('/');
+    }
+    setIsSubmitting(false);
   };
 
   if (cart.length === 0) {
@@ -36,7 +69,6 @@ export default function Checkout() {
   return (
     <>
       <Navbar />
-      
       <main className={styles.container}>
         <h1 className="heading-serif" style={{ textAlign: 'center', marginBottom: '2rem' }}>Checkout</h1>
         
@@ -47,29 +79,29 @@ export default function Checkout() {
               <div className={styles.formRow}>
                 <div className={styles.formGroup}>
                   <label>First Name</label>
-                  <input type="text" required placeholder="Jane" />
+                  <input type="text" required value={formData.firstName} onChange={(e) => setFormData({...formData, firstName: e.target.value})} placeholder="Jane" />
                 </div>
                 <div className={styles.formGroup}>
                   <label>Last Name</label>
-                  <input type="text" required placeholder="Doe" />
+                  <input type="text" required value={formData.lastName} onChange={(e) => setFormData({...formData, lastName: e.target.value})} placeholder="Doe" />
                 </div>
               </div>
               <div className={styles.formGroup}>
                 <label>Email Address</label>
-                <input type="email" required placeholder="jane@example.com" />
+                <input type="email" required value={formData.email} onChange={(e) => setFormData({...formData, email: e.target.value})} placeholder="jane@example.com" />
               </div>
               <div className={styles.formGroup}>
                 <label>Shipping Address</label>
-                <input type="text" required placeholder="123 Cozy Lane" />
+                <input type="text" required value={formData.address} onChange={(e) => setFormData({...formData, address: e.target.value})} placeholder="123 Cozy Lane" />
               </div>
               <div className={styles.formRow}>
                 <div className={styles.formGroup}>
                   <label>City</label>
-                  <input type="text" required placeholder="New York" />
+                  <input type="text" required value={formData.city} onChange={(e) => setFormData({...formData, city: e.target.value})} placeholder="Lahore" />
                 </div>
                 <div className={styles.formGroup}>
                   <label>Postal Code</label>
-                  <input type="text" required placeholder="10001" />
+                  <input type="text" required value={formData.postalCode} onChange={(e) => setFormData({...formData, postalCode: e.target.value})} placeholder="54000" />
                 </div>
               </div>
             </section>
@@ -82,11 +114,10 @@ export default function Checkout() {
                   <span>JazzCash (+92 319 0710263)</span>
                 </div>
               </div>
-              
               <div style={{ marginTop: '1rem', padding: '1rem', background: '#f9f9f9', borderRadius: '10px' }}>
                 <p style={{ fontSize: '0.9rem', color: '#444' }}>
                   Please send the total amount to <strong>+92 319 0710263</strong> via JazzCash. 
-                  After payment, click "Place Order" below.
+                  Your order will be processed after payment verification.
                 </p>
               </div>
             </section>
@@ -94,9 +125,9 @@ export default function Checkout() {
 
           <aside className={styles.orderSummary}>
             <h2 className="heading-serif">Your Order</h2>
-            {cart.map((item) => (
+            {cart.map((item: any) => (
               <div key={`${item.id}-${item.size}`} className={styles.item}>
-                <span>{item.name} (x{item.quantity})</span>
+                <span>{item.name} ({item.size}) x{item.quantity}</span>
                 <span>Rs. {(item.price * item.quantity).toLocaleString()}</span>
               </div>
             ))}
@@ -104,11 +135,12 @@ export default function Checkout() {
               <span>Total</span>
               <span>Rs. {cartTotal.toLocaleString()}</span>
             </div>
-            <button type="submit" className={styles.placeOrder}>Place Order</button>
+            <button type="submit" disabled={isSubmitting} className={styles.placeOrder}>
+              {isSubmitting ? 'Processing...' : 'Place Order'}
+            </button>
           </aside>
         </form>
       </main>
-
       <Footer />
     </>
   );
