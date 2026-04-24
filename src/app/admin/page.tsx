@@ -18,6 +18,9 @@ interface Product {
 export default function AdminDashboard() {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [password, setPassword] = useState('');
+  
   const [newProduct, setNewProduct] = useState({
     name: '',
     price: '',
@@ -26,14 +29,24 @@ export default function AdminDashboard() {
     description: ''
   });
 
+  const handleLogin = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (password === 'admin123') {
+      setIsAuthenticated(true);
+    } else {
+      alert('Incorrect Password!');
+    }
+  };
+
   useEffect(() => {
-    fetchProducts();
-  }, []);
+    if (isAuthenticated) {
+      fetchProducts();
+    }
+  }, [isAuthenticated]);
 
   const fetchProducts = async () => {
     try {
       setLoading(true);
-      console.log('Attempting to fetch from Supabase...');
       const { data, error } = await supabase
         .from('products')
         .select('*')
@@ -41,14 +54,11 @@ export default function AdminDashboard() {
 
       if (error) {
         console.error('Supabase Error:', error);
-        alert(`Supabase Error: ${error.message}`);
       } else {
-        console.log('Products fetched:', data);
         setProducts(data || []);
       }
     } catch (err) {
-      console.error('Network/Fetch Error:', err);
-      alert('Fetch Error: Could not connect to Supabase. Check your internet or ad-blocker.');
+      console.error('Fetch Error:', err);
     } finally {
       setLoading(false);
     }
@@ -80,68 +90,91 @@ export default function AdminDashboard() {
       .insert([productToAdd]);
 
     if (error) {
-      alert(`Supabase Error: ${error.message} (Code: ${error.code})`);
-      console.error(error);
+      alert(`Error: ${error.message}`);
     } else {
       fetchProducts();
       setNewProduct({ name: '', price: '', category: 'Kids', image: '/images/hero.png', description: '' });
-      alert('Product saved successfully to Supabase!');
+      alert('Product saved successfully!');
     }
   };
 
   const handleDelete = async (id: number) => {
+    if (!confirm('Are you sure you want to delete this product?')) return;
     const { error } = await supabase
       .from('products')
       .delete()
       .eq('id', id);
 
     if (error) {
-      console.error('Error deleting product:', error);
+      console.error('Error deleting:', error);
     } else {
       fetchProducts();
     }
   };
 
+  if (!isAuthenticated) {
+    return (
+      <div style={{ 
+        height: '100vh', 
+        display: 'flex', 
+        alignItems: 'center', 
+        justifyContent: 'center', 
+        background: 'var(--color-cream)',
+        padding: '2rem'
+      }}>
+        <div className={styles.formCard} style={{ maxWidth: '400px', width: '100%', textAlign: 'center' }}>
+          <h1 className="heading-serif" style={{ marginBottom: '2rem' }}>Admin Login</h1>
+          <form onSubmit={handleLogin} className={styles.form}>
+            <div className={styles.inputGroup}>
+              <label>Admin Password</label>
+              <input 
+                type="password" 
+                value={password} 
+                onChange={(e) => setPassword(e.target.value)} 
+                placeholder="Enter password"
+                required 
+              />
+            </div>
+            <button type="submit" className="text-minimal" style={{ 
+              width: '100%', 
+              padding: '1rem', 
+              background: 'var(--color-dark-brown)', 
+              color: 'white', 
+              border: 'none', 
+              borderRadius: '10px',
+              cursor: 'pointer'
+            }}>
+              Unlock Dashboard
+            </button>
+          </form>
+          <div style={{ marginTop: '1.5rem' }}>
+            <Link href="/" style={{ color: 'var(--color-light-brown)', fontSize: '0.9rem' }}>← Back to Store</Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className={styles.adminContainer}>
       <header className={styles.header}>
-        <h1 className="heading-serif">Wool & Whimpy Admin</h1>
-        <Link href="/" style={{ color: 'var(--color-light-brown)', fontWeight: '600' }}>View Storefront</Link>
+        <h1 className="heading-serif">Store Dashboard</h1>
+        <div style={{ display: 'flex', gap: '1rem' }}>
+          <Link href="/" className="text-minimal">View Site</Link>
+          <button onClick={() => setIsAuthenticated(false)} style={{ background: 'none', border: 'none', color: 'red', cursor: 'pointer' }}>Logout</button>
+        </div>
       </header>
 
-      <div className={styles.statsGrid}>
-        <div className={styles.statCard}>
-          <h3>Total Products</h3>
-          <p>{products.length}</p>
-        </div>
-        <div className={styles.statCard}>
-          <h3>Active Orders</h3>
-          <p>12</p>
-        </div>
-        <div className={styles.statCard}>
-          <h3>Total Revenue</h3>
-          <p>Rs. 1,450</p>
-        </div>
-        <div className={styles.statCard}>
-          <h3>Custom Requests</h3>
-          <p>4</p>
-        </div>
-      </div>
-
-      <div className={styles.mainGrid}>
-        <div className={styles.productList}>
-          <h2 className="heading-serif" style={{ marginBottom: '1.5rem' }}>Inventory Management</h2>
-          {products.map(product => (
-            <div key={product.id} className={styles.productItem}>
-              <img src={product.image} alt={product.name} className={styles.productThumb} />
-              <div>
-                <h4 style={{ fontWeight: '600' }}>{product.name}</h4>
-                <p style={{ fontSize: '0.8rem', color: '#666' }}>{product.category}</p>
-              </div>
-              <p style={{ fontWeight: '700' }}>Rs. {product.price}</p>
-              <button className={styles.deleteBtn} onClick={() => handleDelete(product.id)}>Delete</button>
-            </div>
-          ))}
+      <div className={styles.dashboardGrid}>
+        <div className={styles.statsRow}>
+          <div className={styles.statCard}>
+            <h3>Total Products</h3>
+            <p>{products.length}</p>
+          </div>
+          <div className={styles.statCard}>
+            <h3>Total Revenue</h3>
+            <p>Rs. 1,450</p>
+          </div>
         </div>
 
         <div className={styles.formCard}>
@@ -194,11 +227,25 @@ export default function AdminDashboard() {
               <textarea 
                 value={newProduct.description} 
                 onChange={(e) => setNewProduct({...newProduct, description: e.target.value})}
-                rows={3}
               ></textarea>
             </div>
-            <button type="submit" className={styles.submitBtn}>Save Product</button>
+            <button type="submit" className={styles.saveBtn}>Save Product</button>
           </form>
+        </div>
+
+        <div className={styles.productList}>
+          <h2 className="heading-serif">Current Inventory</h2>
+          {loading ? <p>Loading products...</p> : products.map(product => (
+            <div key={product.id} className={styles.productItem}>
+              <img src={product.image} alt={product.name} />
+              <div style={{ flex: 1 }}>
+                <h4 style={{ fontWeight: '600' }}>{product.name}</h4>
+                <p style={{ fontSize: '0.8rem', color: '#666' }}>{product.category}</p>
+              </div>
+              <p style={{ fontWeight: '700' }}>Rs. {product.price}</p>
+              <button className={styles.deleteBtn} onClick={() => handleDelete(product.id)}>Delete</button>
+            </div>
+          ))}
         </div>
       </div>
     </div>
