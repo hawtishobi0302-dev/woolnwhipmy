@@ -10,11 +10,10 @@ import { useRouter } from 'next/navigation';
 export default function Checkout() {
   const { cart, cartTotal, clearCart } = useCart();
   const router = useRouter();
-  const [paymentMethod, setPaymentMethod] = useState('card');
 
   const handlePlaceOrder = (e: React.FormEvent) => {
     e.preventDefault();
-    alert("Order placed successfully! (Simulation)");
+    alert("Order placed successfully! Please ensure you have sent the JazzCash payment.");
     clearCart();
     router.push('/');
   };
@@ -78,27 +77,18 @@ export default function Checkout() {
             <section className={styles.section}>
               <h2>Payment Method</h2>
               <div className={styles.paymentMethods}>
-                <div 
-                  className={`${styles.paymentOption} ${paymentMethod === 'card' ? styles.active : ''}`}
-                  onClick={() => setPaymentMethod('card')}
-                >
-                  <input type="radio" checked={paymentMethod === 'card'} readOnly />
-                  <span>Credit / Debit Card (Stripe)</span>
-                </div>
-                <div 
-                  className={`${styles.paymentOption} ${paymentMethod === 'cod' ? styles.active : ''}`}
-                  onClick={() => setPaymentMethod('cod')}
-                >
-                  <input type="radio" checked={paymentMethod === 'cod'} readOnly />
-                  <span>Cash on Delivery</span>
+                <div className={`${styles.paymentOption} ${styles.active}`}>
+                  <input type="radio" checked readOnly />
+                  <span>JazzCash (+92 319 0710263)</span>
                 </div>
               </div>
               
-              {paymentMethod === 'card' && (
-                <div style={{ marginTop: '1rem', padding: '1rem', background: '#f9f9f9', borderRadius: '10px' }}>
-                  <p style={{ fontSize: '0.8rem', color: '#666' }}>Stripe payment elements will be rendered here.</p>
-                </div>
-              )}
+              <div style={{ marginTop: '1rem', padding: '1rem', background: '#f9f9f9', borderRadius: '10px' }}>
+                <p style={{ fontSize: '0.9rem', color: '#444' }}>
+                  Please send the total amount to <strong>+92 319 0710263</strong> via JazzCash. 
+                  After payment, click "Place Order" below.
+                </p>
+              </div>
             </section>
           </div>
 
